@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Potrero Loco</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <header class="hud">
+      <div class="team cel"><span class="num" id="sA">0</span><span class="tname">Celeste · vos</span></div>
+      <div class="mid">
+        <div class="clock" id="clock">2:00</div>
+        <div class="meter" id="meter"><span id="meterLbl">Súper</span><div class="bar"><i id="meterFill"></i></div></div>
+      </div>
+      <div class="team roj"><span class="tname">Rojo</span><span class="num" id="sB">0</span></div>
+    </header>
+    <div class="subbar">
+      <div class="chips" id="chips"></div>
+      <div class="actions">
+        <button class="ghost-btn" id="fsBtn" hidden>Pantalla completa</button>
+        <button class="ghost-btn" id="muteBtn" aria-pressed="false">Sonido: sí</button>
+        <button class="ghost-btn" id="pauseBtn">Pausa</button>
+      </div>
+    </div>
+    <div class="stage" id="stage"><canvas id="game" aria-label="Cancha de Potrero Loco"></canvas></div>
+    <p class="hint">Mover <b>flechas / WASD</b> · Patear <b>J o Espacio</b> · Piña o pase <b>K</b> · Súper <b>L</b> · Pausa <b>P</b> · Sonido <b>M</b></p>
+    <div class="touch">
+      <div class="joy" id="joy"><div class="knob" id="knob"></div></div>
+      <div class="btns">
+        <button class="tbtn punch" data-act="punch">Piña<br>pase</button>
+        <button class="tbtn sup" data-act="sup">Súper</button>
+        <button class="tbtn kick" data-act="kick">Patear</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="titleOv">
+    <div class="box">
+      <p class="eyebrow">Fútbol cabezón de potrero · 2 vs 2</p>
+      <h1>Potrero<br>Loco</h1>
+      <p class="lede">Partido de dos minutos en la canchita de tierra. Se puede pegar, aunque el cartel diga otra cosa.</p>
+      <ul class="rules">
+        <li>Cada vez que te hacen un gol, elegís una carta de caos que cambia las reglas.</li>
+        <li>Las cartas se acumulan: hasta 4 activas, y la más vieja se va.</li>
+        <li>El súper tiro sale al azar: cañonazo, serpiente o meteorito.</li>
+      </ul>
+      <p class="keys"><kbd>WASD</kbd> mover · <kbd>J</kbd> patear · <kbd>K</kbd> piña o pase · <kbd>L</kbd> súper · <kbd>P</kbd> pausa</p>
+      <button class="btn" id="startBtn">Jugar</button>
+      <p class="version">v0.2 · Colectivo 60 y Perro Callejero</p>
+    </div>
+  </div>
+
+  <div class="overlay" id="pickOv" hidden>
+    <div class="box">
+      <p class="eyebrow" id="pickEyebrow"></p>
+      <h2 id="pickTitle"></h2>
+      <div class="cards" id="cards"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="pauseOv" hidden>
+    <div class="box">
+      <p class="eyebrow">Partido en pausa</p>
+      <h2>Tiempo muerto</h2>
+      <div class="row">
+        <button class="btn" id="resumeBtn">Seguir</button>
+        <button class="btn alt" id="quitBtn">Empezar de nuevo</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="endOv" hidden>
+    <div class="box">
+      <p class="eyebrow">Final del partido</p>
+      <div class="final"><span class="a" id="fA">0</span><span class="dash">—</span><span class="b" id="fB">0</span></div>
+      <h2 id="endMsg"></h2>
+      <button class="btn" id="againBtn">Revancha</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
