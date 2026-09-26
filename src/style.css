@@ -7,7 +7,7 @@
 html,body{height:100%}
 [hidden]{display:none!important}
 body{background:var(--earth);color:var(--chalk);font-family:Rubik,system-ui,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
-#app{height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:10px}
+#app{height:100%;height:100dvh;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:10px}
 .hud{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px}
 .team{display:flex;align-items:center;gap:10px}
 .team.roj{justify-content:flex-end}
@@ -89,24 +89,54 @@ body.is-touch .c-key{display:none}
   #fsBtn{display:none}
 }
 
-/* Celular acostado: la cancha ocupa toda la altura y los controles flotan a los costados. */
+/* Celular acostado: la cancha ocupa toda la altura; marcador, cartas y controles flotan a los costados. */
 @media (orientation:landscape) and (max-height:520px){
-  body.is-touch #app{gap:4px;padding-block:4px;position:relative;max-width:none}
-  body.is-touch .num{font-size:20px;padding:3px 7px 2px}
+  body.is-touch #app{position:relative;max-width:none;padding:0;gap:0}
+  body.is-touch .stage{position:absolute;inset:0;min-height:0}
+  body.is-touch #game{border-radius:0;box-shadow:none}
+  body.is-touch .hud{position:absolute;z-index:2;top:6px;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));pointer-events:none;display:flex;justify-content:space-between;align-items:flex-start}
+  body.is-touch .num{font-size:22px;padding:4px 8px 3px}
+  body.is-touch .mid{position:absolute;left:0;top:44px;align-items:flex-start;gap:3px}
   body.is-touch .clock{font-size:18px}
+  body.is-touch .meter{gap:6px;font-size:9px}
+  body.is-touch .bar{width:min(90px,calc(var(--side,130px) - 50px));height:8px}
   body.is-touch .tname{display:none}
-  body.is-touch .subbar{flex-wrap:nowrap}
-  body.is-touch .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;min-width:0;flex:1;min-height:22px}
+  body.is-touch .subbar{position:absolute;z-index:2;top:92px;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));flex-wrap:nowrap;align-items:flex-start;pointer-events:none}
+  body.is-touch .subbar>*{pointer-events:auto}
+  body.is-touch .chips{flex-direction:column;align-items:flex-start;flex-wrap:nowrap;gap:4px;max-width:var(--side,130px);font-size:10px}
   body.is-touch .chips>span:first-child:not(.chip){display:none}
-  body.is-touch .chip{white-space:nowrap;font-size:10px;padding:4px 8px 3px}
-  body.is-touch .ghost-btn{padding:4px 9px;font-size:11px}
-  body.is-touch .touch{position:absolute;left:0;right:0;bottom:10px;padding-inline:16px;pointer-events:none;z-index:2;align-items:flex-end}
+  body.is-touch .chip{font-size:9px;padding:4px 7px 3px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  body.is-touch .actions{flex-direction:column;align-items:flex-end;gap:4px}
+  body.is-touch .ghost-btn{padding:4px 9px;font-size:11px;max-width:var(--side,130px);white-space:normal;text-align:right;line-height:1.2}
+  body.is-touch .touch{position:absolute;left:0;right:0;bottom:max(10px,env(safe-area-inset-bottom));padding-inline:max(12px,env(safe-area-inset-left));pointer-events:none;z-index:2;align-items:flex-end}
   body.is-touch .touch>*{pointer-events:auto}
   body.is-touch .joy{width:108px;height:108px;background:rgba(27,23,18,.35)}
-  body.is-touch .btns{display:grid;grid-template-columns:auto auto;grid-template-areas:". sup" "punch kick";gap:8px;align-items:end}
+  body.is-touch .btns{display:grid;grid-template-columns:auto auto;grid-template-areas:". sup" "punch kick";gap:6px;align-items:end}
+  body.is-touch .tbtn{width:58px;height:58px;opacity:.92}
+  body.is-touch .tbtn.kick{width:66px;height:66px}
   body.is-touch .tbtn.sup{grid-area:sup;justify-self:end}
   body.is-touch .tbtn.punch{grid-area:punch}
   body.is-touch .tbtn.kick{grid-area:kick}
-  body.is-touch .tbtn{opacity:.9}
 }
+
+/* Pantallas bajas (celu acostado): pantallas de inicio, cartas y final más compactas. */
+@media (max-height:520px){
+  .overlay{padding-block:10px}
+  .box{gap:8px}
+  h1{font-size:40px;text-shadow:3px 3px 0 var(--roj),6px 6px 0 var(--ink)}
+  h2{font-size:22px}
+  .lede{font-size:14px;line-height:1.4}
+  .rules{gap:4px}
+  .rules li{font-size:13px;line-height:1.35}
+  .btn{font-size:17px;padding:9px 24px 7px}
+  .version{display:none}
+  .cards{gap:12px;padding:4px 0}
+  .card{width:150px;min-height:0;padding-bottom:10px}
+  .c-sym{font-size:34px}
+  .c-name{font-size:15px;margin:4px 0 6px}
+  .c-desc{font-size:12.5px}
+  .final{font-size:56px}
+}
+body.is-touch .keys{display:none}
+
 @media (prefers-reduced-motion:reduce){.meter.full .bar i{animation:none}.card{transition:none}}

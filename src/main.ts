@@ -24,6 +24,9 @@ function fit() {
   const s = Math.min(r.width / vw, r.height / H);
   canvas.style.width = `${Math.floor(vw * s)}px`;
   canvas.style.height = `${Math.floor(H * s)}px`;
+  // Ancho libre a cada lado de la cancha (lo usa el diseño horizontal para las cartas).
+  const side = Math.max(90, Math.floor((r.width - vw * s) / 2) - 16);
+  document.documentElement.style.setProperty('--side', `${side}px`);
 }
 addEventListener('resize', fit);
 new ResizeObserver(fit).observe(stage);
