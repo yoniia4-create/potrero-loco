@@ -82,7 +82,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && !G.
 // En desarrollo, exponer el estado para probar desde la consola: __potrero.G, __potrero.choose(...)
 if (import.meta.env.DEV) {
   void import('./cards').then(({ CARDS, addCard }) => {
-    (window as unknown as Record<string, unknown>).__potrero = { G, CARDS, addCard, choose };
+    (window as unknown as Record<string, unknown>).__potrero = { G, CARDS, addCard, choose, step, kickoff, newMatch };
   });
 }
 

@@ -1,6 +1,6 @@
 # Potrero Loco — guía para Claude Code
 
-Juego web de fútbol arcade 2 vs 2 con cabezones en un potrero argentino. La mecánica central son las **cartas de caos**: el equipo que recibe un gol elige 1 de 3 cartas que cambian las reglas (se acumulan hasta 4).
+Juego web de fútbol arcade 2 vs 2 (más un arquero IA por equipo) con cabezones en un potrero argentino. La mecánica central son las **cartas de caos**: el equipo que recibe un gol elige 1 de 3 cartas que cambian las reglas (se acumulan hasta 4).
 
 ## Comandos
 - `npm run dev` — servidor local con recarga.
@@ -8,7 +8,8 @@ Juego web de fútbol arcade 2 vs 2 con cabezones en un potrero argentino. La mec
 - `npm run build` — typecheck + build a un único `dist/index.html` autocontenido.
 
 ## Arquitectura
-- `src/config.ts` — todas las constantes ajustables (física, tiempos, peligros). Tocá números acá, no en la lógica.
+- `src/config.ts` — todas las constantes ajustables. `PHYS` (física), `PLAY` (ritmo de juego, IA y arqueros), `HAZARD` (peligros de cartas). Tocá números acá, no en la lógica.
+- Orden de `G.players`: vos, compañero, rival atacante, rival defensor, arquero celeste, arquero rojo. `mateOf()` devuelve el compañero de campo (nunca el arquero).
 - `src/state.ts` — objeto global `G` con el estado del partido. Simulación, dibujo y UI lo leen.
 - `src/cards.ts` — **las cartas son datos**. Cada una tiene `apply()` que modifica `Mods` (global) o `TeamMods` (por equipo). `recompute()` rehace todo desde cero con las cartas activas; `syncEntities()` crea/quita entidades (bananas, pelotas extra, colectivo, perro).
 - `src/sim/` — simulación pura, sin DOM: `player.ts` (acciones), `ball.ts` (física, goles), `hazards.ts` (bananas, Colectivo 60, perro), `ai.ts`.
@@ -29,6 +30,9 @@ Juego web de fútbol arcade 2 vs 2 con cabezones en un potrero argentino. La mec
 3. Si necesita un flag nuevo, agregarlo a `Mods`/`TeamMods` y a `defaultMods()`/`defaultTeamMods()`.
 4. Si crea entidades, manejarlas en `syncEntities()`, actualizarlas en `flow.step()` y dibujarlas en `draw.ts`.
 5. Si la IA debería reaccionar, ajustar `sim/ai.ts`.
+
+## Balance
+Para medir el ritmo sin jugar a mano: con `npm run dev`, en la consola del navegador está `__potrero` (G, step, newMatch, kickoff, choose). Poner `G.players[0].human = false` y llamar `step()` en un loop simula partidos IA contra IA. Referencia actual (sin cartas, IA vs IA): ~4,8 goles por partido, ~19 atajadas, posesión mediana ~2,5 s.
 
 ## Ideas pendientes
 - Árbitro con personalidad (cobra cualquier cosa, se lo puede sobornar).

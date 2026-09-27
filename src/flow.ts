@@ -1,5 +1,5 @@
 // Flujo del partido: saque, paso de simulación, goles, cartas y final.
-import { CX, CY, F, MATCH_SECONDS, PHYS } from './config';
+import { CX, CY, F, MATCH_SECONDS, PHYS, PLAY } from './config';
 import { initAudio, sfx } from './audio';
 import { addCard, offerCards, recompute, type CardDef } from './cards';
 import { flashText, updateFx } from './fx';
@@ -15,10 +15,20 @@ import { hidePick, showEnd, showPause, showPick } from './ui/overlays';
 
 const NO_INPUT: Input = { x: 0, y: 0, kick: false, punch: false, sup: false, aim: null };
 
-export function kickoff() {
-  const pos: [number, number][] = [[CX - 150, CY], [F.l + 170, CY + 100], [CX + 150, CY], [F.r - 170, CY - 100]];
+/** Saque del medio. Si se indica un equipo, ese equipo arranca con la pelota. */
+export function kickoff(kickTeam: Team | null = null) {
+  const k = kickTeam;
+  // Orden de G.players: vos, compañero, rival atacante, rival defensor, arquero celeste, arquero rojo.
+  const pos: [number, number][] =
+    k === 0 ? [[CX - 14, CY], [CX - 150, CY + 100], [CX + 110, CY - 40], [F.r - 190, CY + 60]]
+    : k === 1 ? [[CX - 110, CY + 40], [F.l + 190, CY - 60], [CX + 14, CY], [CX + 150, CY - 100]]
+    : [[CX - 150, CY], [F.l + 170, CY + 100], [CX + 150, CY], [F.r - 170, CY - 100]];
+  pos.push([F.l + 24, CY], [F.r - 24, CY]);
   G.players.forEach((p, i) => {
-    Object.assign(p, { x: pos[i][0], y: pos[i][1], vx: 0, vy: 0, stun: 0, punchT: 0, fx: p.team ? -1 : 1, fy: 0, noPick: 0, kickAnim: 0 });
+    Object.assign(p, {
+      x: pos[i][0], y: pos[i][1], vx: 0, vy: 0, stun: 0, punchT: 0,
+      fx: p.team ? -1 : 1, fy: 0, noPick: 0, kickAnim: 0, shield: 0, holdT: 0,
+    });
   });
   const bp: [number, number][] = [[CX, CY], [CX, CY - 150], [CX, CY + 150]];
   G.balls.forEach((b, i) => {
@@ -26,6 +36,11 @@ export function kickoff() {
     Object.assign(b, newBall(bp[i][0], bp[i][1]));
     b.fuse = PHYS.bombFuse + i * 170;
   });
+  if (k !== null && G.balls[0]) {
+    const kicker = G.players.find((p) => p.team === k && p.role !== 'gk' && (p.human || p.role === 'att'))!;
+    G.balls[0].owner = kicker;
+    kicker.shield = PLAY.kickoffShield;
+  }
   if (G.bus) resetBus(G.bus);
   if (G.dog) G.dog = createDog();
 }
@@ -78,7 +93,7 @@ export function choose(c: CardDef) {
   addCard(c, G.pickTeam);
   renderChips();
   hidePick();
-  kickoff();
+  kickoff(G.pickTeam);
   G.phase = 'play';
   flashText(c.name.toUpperCase(), '#ffd23f', 70);
   sfx('card');

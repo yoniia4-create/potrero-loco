@@ -1,5 +1,5 @@
 // Movimiento y acciones de los jugadores: patear, pasar, piña y súper tiro.
-import { F, PHYS } from '../config';
+import { CY, F, PHYS, PLAY } from '../config';
 import { sfx } from '../audio';
 import { addShake, flashText, puff } from '../fx';
 import { G, headOf, holding, mateOf } from '../state';
@@ -48,15 +48,18 @@ export function doKick(p: Player) {
   b.vy = p.fy * PHYS.kickSpeed;
   b.vz = 2.4 * G.mods.lift;
   b.last = p;
+  b.rolled = false;
   p.noPick = 16;
   addMeter(p, PHYS.meterKick);
   sfx('kick');
   puff(b.x, b.y, 'rgba(150,100,55,.6)', 5);
 }
 
-function doPass(p: Player) {
-  const b = holding(p)!;
-  const m = mateOf(p);
+/** Pase a un compañero (por defecto, el compañero de campo). */
+export function doPass(p: Player, target: Player = mateOf(p)) {
+  const b = holding(p);
+  if (!b) return;
+  const m = target;
   const tx = m.x + m.vx * 12;
   const ty = m.y + m.vy * 12;
   const [nx, ny] = norm(tx - p.x, ty - p.y);
@@ -65,6 +68,7 @@ function doPass(p: Player) {
   b.owner = null;
   b.vx = nx * s; b.vy = ny * s; b.vz = 1.6 * G.mods.lift;
   b.last = p;
+  b.rolled = false;
   p.noPick = 18;
   p.kickAnim = 8;
   sfx('kick');
@@ -78,7 +82,7 @@ export function doPunch(p: Player) {
     return;
   }
   p.punchT = 14;
-  p.punchCd = 42;
+  p.punchCd = p.human ? 42 : PLAY.aiPunchCooldown;
   p.vx = p.fx * 7;
   p.vy = p.fy * 7;
   sfx('whoosh');
@@ -92,6 +96,14 @@ function checkPunch(p: Player) {
   };
   for (const o of G.players) {
     if (o.team === p.team || o.stun > 0 || !inFront(o.x, o.y)) continue;
+    if (o.role === 'gk' && holding(o)) continue; // al arquero con la pelota en la mano no se le pega
+    if (o.shield > 0) {
+      // Recién recibió: la piña no le saca la pelota, solo lo empuja un poco.
+      o.vx += p.fx * 2; o.vy += p.fy * 2;
+      p.punchT = 0;
+      puff(o.x, o.y - 14, 'rgba(255,255,255,.6)', 3);
+      return;
+    }
     hit(o, p.fx, p.fy, PHYS.punchStun);
     addMeter(p, PHYS.meterPunch);
     p.punchT = 0;
@@ -117,6 +129,7 @@ export function doSuper(p: Player) {
   b.super = t;
   b.last = p;
   b.dx = p.fx; b.dy = p.fy;
+  b.rolled = false;
   p.noPick = 25;
   p.kickAnim = 12;
   if (t === 'meteor') {
@@ -134,18 +147,19 @@ export function doSuper(p: Player) {
 export function updatePlayer(p: Player, inp: Input) {
   const tm = G.teamM[p.team];
   if (p.stun > 0) {
-    p.stun--;
+    if (--p.stun === 0) p.shield = Math.max(p.shield, PLAY.getUpShield);
     p.vx *= 0.9; p.vy *= 0.9;
   } else if (p.punchT > 0) {
     p.punchT--;
     p.vx *= 0.9; p.vy *= 0.9;
     checkPunch(p);
   } else {
-    const sp = PHYS.playerSpeed * tm.speed * (p.human ? 1 : PHYS.aiSpeedFactor) * (holding(p) ? PHYS.carrySpeedFactor : 1);
+    const base = p.role === 'gk' ? PLAY.gkSpeed : PHYS.playerSpeed * (p.human ? 1 : PHYS.aiSpeedFactor);
+    const sp = base * tm.speed * (holding(p) && !p.human ? PHYS.carrySpeedFactor : 1);
     const m = hyp(inp.x, inp.y);
     let tx = 0, ty = 0;
     if (m > 0.15) {
-      const k = Math.min(1, m) / m;
+      const k = Math.min(p.role === 'gk' ? 1.5 : 1, m) / m; // el arquero puede estirarse más rápido
       tx = inp.x * k * sp; ty = inp.y * k * sp;
       p.fx = inp.x / m; p.fy = inp.y / m;
     }
@@ -158,6 +172,12 @@ export function updatePlayer(p: Player, inp: Input) {
   }
   p.x = clamp(p.x + p.vx, F.l + 10, F.r - 10);
   p.y = clamp(p.y + p.vy, F.t + 8, F.b - 6);
+  if (p.role === 'gk') {
+    // El arquero no sale de su área.
+    p.x = p.team === 0 ? clamp(p.x, F.l + 10, F.l + 110) : clamp(p.x, F.r - 110, F.r - 10);
+    p.y = clamp(p.y, CY - 158, CY + 158);
+  }
+  if (p.shield > 0) p.shield--;
   if (p.kickCd > 0) p.kickCd--;
   if (p.punchCd > 0) p.punchCd--;
   if (p.noPick > 0) p.noPick--;

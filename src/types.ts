@@ -1,5 +1,5 @@
 export type Team = 0 | 1;
-export type Role = 'att' | 'def' | 'sup';
+export type Role = 'att' | 'def' | 'sup' | 'gk';
 export type Phase = 'title' | 'pick' | 'play' | 'goal' | 'end';
 export type SuperType = 'cannon' | 'zigzag' | 'meteor';
 export type Vec = [number, number];
@@ -24,6 +24,10 @@ export interface Player {
   meter: number;
   anim: number;
   aimOff: number;
+  /** Frames en que no le pueden sacar la pelota (recién la recibió). */
+  shield: number;
+  /** Frames que el arquero lleva con la pelota en la mano. */
+  holdT: number;
 }
 
 export interface Ball {
@@ -39,6 +43,8 @@ export interface Ball {
   spin: number;
   /** La lleva el perro en la boca. */
   dogged: boolean;
+  /** Ya se definió si el arquero ataja este tiro. */
+  rolled: boolean;
 }
 
 export interface Banana { x: number; y: number; cd: number; rot: number }

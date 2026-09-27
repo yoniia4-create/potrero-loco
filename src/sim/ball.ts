@@ -1,22 +1,31 @@
 // Física de la pelota, súper tiros, goles y posesión.
-import { CY, F, PHYS } from '../config';
+import { CY, F, PHYS, PLAY } from '../config';
 import { sfx } from '../audio';
 import { addShake, burst, flashText, puff, ring } from '../fx';
 import { G, headOf, holding } from '../state';
 import type { Ball, Team } from '../types';
-import { hyp, norm, R } from '../util';
+import { clamp, hyp, norm, R } from '../util';
 import { hit } from './player';
 
 export function newBall(x: number, y: number): Ball {
   return {
     x, y, z: 0, vx: 0, vy: 0, vz: 0, owner: null, super: null, superT: 0,
-    dx: 1, dy: 0, last: null, fuse: PHYS.bombFuse, trail: [], spin: 0, dogged: false,
+    dx: 1, dy: 0, last: null, fuse: PHYS.bombFuse, trail: [], spin: 0, dogged: false, rolled: false,
   };
 }
 
 export const ghostY = (side: Team) => CY + Math.sin(G.tick * 0.035 + side * 2) * G.teamM[side].goalHalf * 0.75;
 
 function shock(b: Ball) {
+  // El arquero rival puede quedarse con el meteorito si cae cerca suyo.
+  const gk = G.players.find((o) => o.role === 'gk' && b.last && o.team !== b.last.team && o.stun === 0 && hyp(o.x - b.x, o.y - b.y) < 95);
+  if (gk && R() < PLAY.gkSuperCatch) {
+    b.owner = gk; b.vx = b.vy = b.vz = 0; gk.holdT = 0; gk.shield = PLAY.possessionShield;
+    ring(b.x, b.y, '#c77dff', 16);
+    flashText('¡QUÉ ATAJADA!', gk.team ? '#e8433f' : '#6ec6ff', 50);
+    addShake(6); sfx('punch');
+    return;
+  }
   for (const o of G.players) {
     if (b.last && o.team === b.last.team) continue;
     if (hyp(o.x - b.x, o.y - b.y) < 95) {
@@ -118,6 +127,15 @@ function superFlight(b: Ball) {
   b.x += b.vx; b.y += b.vy;
   for (const o of G.players) {
     if (o.team !== b.last!.team && o.stun === 0 && hyp(o.x - b.x, o.y - b.y) < 22 * headOf(o)) {
+      if (o.role === 'gk' && !b.rolled) {
+        b.rolled = true;
+        if (R() < PLAY.gkSuperCatch) {
+          b.super = null; b.owner = o; b.vx = b.vy = b.vz = 0; o.holdT = 0;
+          flashText('¡QUÉ ATAJADA!', o.team ? '#e8433f' : '#6ec6ff', 50);
+          addShake(6); sfx('punch');
+          return;
+        }
+      }
       hit(o, b.dx, b.dy, 70);
       b.superT -= 10;
       addShake(5);
@@ -127,6 +145,38 @@ function superFlight(b: Ball) {
   if (b.superT <= 0) {
     b.super = null;
     b.vx *= 0.6; b.vy *= 0.6;
+  }
+}
+
+/** El arquero intenta atajar un tiro que le llega. Se decide una sola vez por tiro. */
+function keeperSave(b: Ball) {
+  if (b.rolled || b.z > 44) return;
+  for (const k of G.players) {
+    if (k.role !== 'gk' || k.stun > 0 || holding(k)) continue;
+    const towardGoal = k.team === 0 ? b.vx < -1 : b.vx > 1;
+    if (!towardGoal) continue;
+    const reach = PLAY.gkReach * headOf(k);
+    const near = hyp(b.x - k.x, b.y - k.y) <= reach + 8;
+    const crossing = Math.abs(b.x - k.x) < 12 && Math.abs(b.y - k.y) < reach * 1.5;
+    if (!near && !crossing) continue;
+    b.rolled = true;
+    const speed = hyp(b.vx, b.vy);
+    const chance = clamp(PLAY.gkSaveBase - (speed - 5) * PLAY.gkSavePerSpeed, PLAY.gkSaveMin, PLAY.gkSaveMax);
+    if (R() < chance) {
+      b.owner = k;
+      b.vx = b.vy = b.vz = 0;
+      k.holdT = 0;
+      k.shield = PLAY.possessionShield;
+      puff(b.x, b.y, 'rgba(255,255,255,.8)', 6);
+      flashText('¡ATAJÓ!', k.team ? '#e8433f' : '#6ec6ff', 40);
+      sfx('ghost');
+    } else {
+      // Se tira y no llega.
+      k.stun = 28;
+      k.vx = 0;
+      k.vy = Math.sign(b.y - k.y || 1) * 3;
+    }
+    return;
   }
 }
 
@@ -163,6 +213,7 @@ export function updateBall(b: Ball) {
       }
       const fr = b.z > 0 ? PHYS.airFriction : G.mods.fric;
       b.vx *= fr; b.vy *= fr;
+      if (!b.super) keeperSave(b);
     }
   }
   b.spin += hyp(b.vx, b.vy) * 0.08;
@@ -189,6 +240,9 @@ export function pickups() {
     }
     if (best) {
       b.owner = best;
+      b.rolled = false;
+      best.shield = PLAY.possessionShield;
+      best.holdT = 0;
       if (!best.human) best.aimOff = (R() * 2 - 1) * G.teamM[1 - best.team].goalHalf * 0.7;
     }
   }

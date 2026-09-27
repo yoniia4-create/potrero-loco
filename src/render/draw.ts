@@ -161,7 +161,17 @@ function figure(p: Player, x: number, y: number, h: number, col: string) {
   rr(x - 7, y - 11, 14, 5, 2);
   ctx.fillStyle = col;
   rr(x - 8, y - 21, 16, 11, 4);
-  if (p.team === 0) {
+  if (p.role === 'gk') {
+    // Buzo de arquero: número 1 y guantes.
+    ctx.fillStyle = COLORS.ink;
+    ctx.font = '8px Bungee, Impact, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('1', x, y - 15);
+    ctx.fillStyle = COLORS.paper;
+    circle(x - 10, y - 14, 3.2);
+    circle(x + 10, y - 14, 3.2);
+  } else if (p.team === 0) {
     ctx.fillStyle = COLORS.chalk;
     ctx.fillRect(x - 3.5, y - 21, 2.5, 11);
     ctx.fillRect(x + 1, y - 21, 2.5, 11);
@@ -202,7 +212,8 @@ function figure(p: Player, x: number, y: number, h: number, col: string) {
 }
 
 function drawPlayer(p: Player) {
-  const h = headOf(p), col = p.team ? COLORS.roj : COLORS.cel;
+  const h = headOf(p);
+  const col = p.role === 'gk' ? (p.team ? '#b48cff' : '#7bd389') : p.team ? COLORS.roj : COLORS.cel;
   ctx.fillStyle = 'rgba(40,22,8,.35)';
   ctx.beginPath(); ctx.ellipse(p.x, p.y + 1, 11 + 2 * h, 4.5, 0, 0, 7); ctx.fill();
   if (p.meter >= 100) {

@@ -23,7 +23,7 @@ export const COLORS = {
 
 export const PHYS = {
   playerSpeed: 2.7,
-  aiSpeedFactor: 0.93,
+  aiSpeedFactor: 0.9,
   carrySpeedFactor: 0.9,
   kickSpeed: 10.5,
   friction: 0.972,
@@ -33,10 +33,31 @@ export const PHYS = {
   goalHalf: 72,
   bigGoalHalf: 124,
   bombFuse: 480, // frames (8 s)
-  meterPassive: 0.045,
-  meterKick: 5,
-  meterPunch: 16,
-  punchStun: 55,
+  meterPassive: 0.012, // el súper se gana jugando: patear y pegar cargan más que esperar
+  meterKick: 4,
+  meterPunch: 10,
+  punchStun: 42,
+} as const;
+
+/** Ajustes de ritmo de juego y de la IA. */
+export const PLAY = {
+  possessionShield: 24, // frames protegido al recibir la pelota
+  kickoffShield: 45,
+  getUpShield: 40, // frames protegido al levantarse, para que no lo vuelvan a voltear enseguida
+  aiPunchChance: 0.012, // por frame, cuando está a tiro del que lleva la pelota
+  aiPunchCooldown: 90, // frames entre piñas de la IA (el humano: 42)
+  aiShootRange: 270,
+  aiShootChance: 0.05, // por frame dentro del rango
+  aiSureShot: 170, // a esta distancia patea siempre
+  gkSpeed: 2.3,
+  gkDiveSpeed: 3.4, // cuando viene un tiro
+  gkReach: 24,
+  gkSuperCatch: 0.45, // chance de agarrar un súper tiro en vez de ser arrastrado
+  gkHoldFrames: 45,
+  gkSaveBase: 1.0, // chance de atajar un tiro lento
+  gkSavePerSpeed: 0.04, // cuánto baja por cada unidad de velocidad del tiro
+  gkSaveMin: 0.4,
+  gkSaveMax: 0.9,
 } as const;
 
 export const HAZARD = {

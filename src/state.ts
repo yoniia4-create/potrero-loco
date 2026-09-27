@@ -30,7 +30,7 @@ function mkPlayer(team: Team, human: boolean, role: Player['role'], skin: string
     team, human, role, skin, hair,
     x: 0, y: 0, vx: 0, vy: 0, fx: team ? -1 : 1, fy: 0,
     stun: 0, punchT: 0, punchCd: 0, kickCd: 0, kickAnim: 0, noPick: 0,
-    meter: 0, anim: 0, aimOff: 0,
+    meter: 0, anim: 0, aimOff: 0, shield: 0, holdT: 0,
   };
 }
 
@@ -45,6 +45,8 @@ export const G = {
     mkPlayer(0, false, 'sup', '#8d5a3b', '#111111'),
     mkPlayer(1, false, 'att', '#e8b48a', '#d9a441'),
     mkPlayer(1, false, 'def', '#c98e62', '#6b3b1a'),
+    mkPlayer(0, false, 'gk', '#e0b088', '#3a2414'),
+    mkPlayer(1, false, 'gk', '#b67c52', '#1c120a'),
   ] as Player[],
   balls: [] as Ball[],
   bananas: [] as Banana[],
@@ -65,4 +67,6 @@ export const G = {
 export const human = () => G.players[0];
 export const holding = (p: Player) => G.balls.find((b) => b.owner === p);
 export const headOf = (p: Player) => G.teamM[p.team].head;
-export const mateOf = (p: Player) => G.players.find((q) => q.team === p.team && q !== p)!;
+/** Compañero de campo (nunca el arquero). */
+export const mateOf = (p: Player) => G.players.find((q) => q.team === p.team && q !== p && q.role !== 'gk')!;
+export const keeperOf = (team: number) => G.players.find((q) => q.team === team && q.role === 'gk')!;
