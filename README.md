@@ -1,6 +1,6 @@
 # Potrero Loco
 
-Fútbol cabezón de potrero, 2 vs 2. El que va perdiendo elige el caos.
+Fútbol cabezón de potrero, 4 vs 4. El que va perdiendo elige el caos.
 
 ## Jugar en local
 ```bash

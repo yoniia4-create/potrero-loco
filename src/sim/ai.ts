@@ -1,6 +1,6 @@
 // IA simple por roles: el más cercano persigue, el otro se posiciona.
 import { CX, CY, F, PLAY } from '../config';
-import { G, headOf, holding, mateOf } from '../state';
+import { G, headOf, holding, mateOf, teammatesOf } from '../state';
 import type { Ball, Input, Player } from '../types';
 import { clamp, hyp, norm, pick, R } from '../util';
 import { doPass } from './player';
@@ -64,6 +64,7 @@ export function aiInput(p: Player): Input {
   const oppGoal = p.team === 0 ? F.r : F.l;
   const ownGoal = p.team === 0 ? F.l : F.r;
   const mate = mateOf(p);
+  const mates = teammatesOf(p);
   const opps = G.players.filter((q) => q.team !== p.team);
   const go = (tx: number, ty: number) => {
     const dx = tx - p.x, dy = ty - p.y, d = hyp(dx, dy);
@@ -109,11 +110,13 @@ export function aiInput(p: Player): Input {
 
   let chase = false;
   if (b) {
-    const md = hyp(b.x - mate.x, b.y - mate.y);
+    const chasers = mates.filter((m) => m.stun === 0 && !holding(m));
+    const md = chasers.length ? Math.min(...chasers.map((m) => hyp(b.x - m.x, b.y - m.y))) : Infinity;
     if (p.team === 1) {
-      chase = bd <= md || mate.stun > 0 || hyp(b.x - ownGoal, b.y - CY) < 280 || (p.role === 'att' && bd < md * 1.3);
+      chase = bd <= md || hyp(b.x - ownGoal, b.y - CY) < 280 || (p.role === 'att' && bd < md * 1.3);
     } else {
-      chase = !holding(mate) && (mate.stun > 0 || bd < md * 0.8 || (b.x < CX && bd < md * 1.2));
+      const noMateHasBall = mates.every((m) => !holding(m));
+      chase = noMateHasBall && (bd <= md || bd < md * 0.8 || (b.x < CX && bd < md * 1.2));
     }
   }
 
@@ -130,10 +133,13 @@ export function aiInput(p: Player): Input {
     }
   } else if (carrierBall) {
     const c = carrierBall.owner!;
-    go(clamp(c.x + dirX * 170, F.l + 60, F.r - 60), c.y > CY ? CY - 120 : CY + 120);
+    const lane = p.role === 'def' ? -140 : p.role === 'sup' ? 30 : 170;
+    const side = p.role === 'def' ? (c.y > CY ? 1 : -1) : (c.y > CY ? -1 : 1);
+    go(clamp(c.x + dirX * lane, F.l + 60, F.r - 60), CY + side * (p.role === 'def' ? 70 : 120));
   } else {
     const by = b ? b.y : CY;
-    go(ownGoal + dirX * (p.team === 1 ? 160 : 190), CY + (by - CY) * 0.55);
+    const depth = p.role === 'def' ? 130 : p.role === 'sup' ? (p.team === 1 ? 160 : 190) : 230;
+    go(ownGoal + dirX * depth, CY + (by - CY) * 0.55);
   }
   return inp;
 }

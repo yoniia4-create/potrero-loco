@@ -21,8 +21,8 @@ const addMeter = (p: Player, n: number) => {
 export function hit(o: Player, dx: number, dy: number, frames: number) {
   o.stun = frames;
   o.punchT = 0;
-  o.vx = dx * 6;
-  o.vy = dy * 6;
+  o.vx = dx * PHYS.knockback;
+  o.vy = dy * PHYS.knockback;
   const b = holding(o);
   if (b) {
     b.owner = null;

@@ -4,6 +4,7 @@ import type { CardDef } from './cards';
 import type {
   ActiveCard, Ball, Banana, Bus, Dog, Flash, Mods, Particle, Phase, Player, Team, TeamMods,
 } from './types';
+import { hyp } from './util';
 
 export const defaultMods = (): Mods => ({
   fric: PHYS.friction,
@@ -43,8 +44,10 @@ export const G = {
   players: [
     mkPlayer(0, true, 'att', '#f1c7a0', '#2b1a10'),
     mkPlayer(0, false, 'sup', '#8d5a3b', '#111111'),
+    mkPlayer(0, false, 'def', '#caa27a', '#4a2f18'),
     mkPlayer(1, false, 'att', '#e8b48a', '#d9a441'),
-    mkPlayer(1, false, 'def', '#c98e62', '#6b3b1a'),
+    mkPlayer(1, false, 'sup', '#c98e62', '#6b3b1a'),
+    mkPlayer(1, false, 'def', '#a97748', '#2e1c0c'),
     mkPlayer(0, false, 'gk', '#e0b088', '#3a2414'),
     mkPlayer(1, false, 'gk', '#b67c52', '#1c120a'),
   ] as Player[],
@@ -67,6 +70,16 @@ export const G = {
 export const human = () => G.players[0];
 export const holding = (p: Player) => G.balls.find((b) => b.owner === p);
 export const headOf = (p: Player) => G.teamM[p.team].head;
-/** Compañero de campo (nunca el arquero). */
-export const mateOf = (p: Player) => G.players.find((q) => q.team === p.team && q !== p && q.role !== 'gk')!;
+/** Todos los compañeros de campo (nunca el arquero). */
+export const teammatesOf = (p: Player) => G.players.filter((q) => q.team === p.team && q !== p && q.role !== 'gk');
+/** Compañero de campo más cercano (nunca el arquero); usado para pases y decisiones simples. */
+export const mateOf = (p: Player) => {
+  const mates = teammatesOf(p);
+  let best = mates[0], bd = Infinity;
+  for (const m of mates) {
+    const d = hyp(m.x - p.x, m.y - p.y);
+    if (d < bd) { bd = d; best = m; }
+  }
+  return best;
+};
 export const keeperOf = (team: number) => G.players.find((q) => q.team === team && q.role === 'gk')!;

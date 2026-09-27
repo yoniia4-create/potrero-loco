@@ -18,11 +18,13 @@ const NO_INPUT: Input = { x: 0, y: 0, kick: false, punch: false, sup: false, aim
 /** Saque del medio. Si se indica un equipo, ese equipo arranca con la pelota. */
 export function kickoff(kickTeam: Team | null = null) {
   const k = kickTeam;
-  // Orden de G.players: vos, compañero, rival atacante, rival defensor, arquero celeste, arquero rojo.
+  // Orden de G.players: vos, compañero(sup), compañero(def), rival atacante, rival mediocampo, rival defensor, arquero celeste, arquero rojo.
   const pos: [number, number][] =
-    k === 0 ? [[CX - 14, CY], [CX - 150, CY + 100], [CX + 110, CY - 40], [F.r - 190, CY + 60]]
-    : k === 1 ? [[CX - 110, CY + 40], [F.l + 190, CY - 60], [CX + 14, CY], [CX + 150, CY - 100]]
-    : [[CX - 150, CY], [F.l + 170, CY + 100], [CX + 150, CY], [F.r - 170, CY - 100]];
+    k === 0
+      ? [[CX - 14, CY], [CX - 150, CY + 100], [F.l + 140, CY - 80], [CX + 110, CY - 40], [CX + 220, CY + 80], [F.r - 190, CY + 60]]
+    : k === 1
+      ? [[CX - 110, CY + 40], [CX - 220, CY - 80], [F.l + 190, CY - 60], [CX + 14, CY], [CX + 150, CY - 100], [F.r - 140, CY + 80]]
+      : [[CX - 150, CY], [F.l + 170, CY + 100], [F.l + 80, CY - 100], [CX + 150, CY], [F.r - 170, CY - 100], [F.r - 80, CY + 100]];
   pos.push([F.l + 24, CY], [F.r - 24, CY]);
   G.players.forEach((p, i) => {
     Object.assign(p, {

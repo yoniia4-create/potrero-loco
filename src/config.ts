@@ -36,7 +36,8 @@ export const PHYS = {
   meterPassive: 0.012, // el súper se gana jugando: patear y pegar cargan más que esperar
   meterKick: 4,
   meterPunch: 10,
-  punchStun: 42,
+  punchStun: 30, // jugadores más "robustos": menos tiempo en el piso por piña
+  knockback: 4.5, // impulso al ser volteado (antes 6: salían disparados demasiado lejos)
 } as const;
 
 /** Ajustes de ritmo de juego y de la IA. */
