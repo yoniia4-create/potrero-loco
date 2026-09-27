@@ -21,6 +21,7 @@ Juego web de fútbol arcade 4 vs 4 (3 jugadores de campo + un arquero IA por equ
 - Coordenadas internas fijas 960×600; el canvas se escala con CSS.
 - La simulación corre en frames (1 frame = 1/60 s). Duraciones en frames.
 - Todo el arte se dibuja por código. Nada de imágenes externas por ahora.
+- Estilo visual "figurita/sticker": contorno grueso (`outline()` en `render/draw.ts`, ~1.6px) en cada forma del cuerpo, colores planos bien saturados, cabezas grandes (`r = 13 * headOf(p)`) y un brillo plano en la frente. Cualquier elemento nuevo (cartas, hazards) debería sumar el mismo contorno para no desentonar.
 - Textos de UI en español rioplatense, cortos y directos.
 - Sonidos sintetizados en `audio.ts` (sin archivos).
 

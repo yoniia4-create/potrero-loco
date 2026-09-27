@@ -54,11 +54,18 @@ export function initRenderer(canvas: HTMLCanvasElement) {
 }
 
 /* ---------- helpers ---------- */
-const circle = (x: number, y: number, r: number) => { ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); };
-const rr = (x: number, y: number, w: number, h: number, r: number) => {
+// El contorno grueso es la firma del estilo "figurita": se dibuja después del relleno.
+const OUTLINE = 1.6;
+const outline = (w = OUTLINE) => { ctx.lineJoin = 'round'; ctx.strokeStyle = COLORS.ink; ctx.lineWidth = w; ctx.stroke(); };
+const circle = (x: number, y: number, r: number, out = false) => {
+  ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+  if (out) outline();
+};
+const rr = (x: number, y: number, w: number, h: number, r: number, out = false) => {
   ctx.beginPath();
   if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
   ctx.fill();
+  if (out) outline();
 };
 function star(x: number, y: number, r: number) {
   ctx.beginPath();
@@ -82,7 +89,8 @@ function drawGoal(side: Team) {
   for (let k = 0; k <= dep; k += 8) { ctx.moveTo(x0 + dir * k, CY - h); ctx.lineTo(x0 + dir * k, CY + h); }
   ctx.stroke();
   ctx.strokeStyle = COLORS.chalk;
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 4;
+  ctx.lineJoin = 'round';
   ctx.beginPath();
   ctx.moveTo(x0, CY - h); ctx.lineTo(xb, CY - h); ctx.lineTo(xb, CY + h); ctx.lineTo(x0, CY + h);
   ctx.stroke();
@@ -147,57 +155,72 @@ function drawBusLane(bus: Bus) {
 }
 
 /* ---------- entidades ---------- */
+// Números de camiseta por rol (estilo figurita): fijos, no identifican al jugador individualmente.
+const SHIRT_NUM: Record<Player['role'], string> = { att: '9', sup: '8', def: '4', gk: '1' };
+
 function figure(p: Player, x: number, y: number, h: number, col: string) {
   const sw = Math.sin(p.anim) * 2.5;
   ctx.fillStyle = '#24170d';
   if (p.kickAnim > 0) {
-    ctx.fillRect(x - 4, y - 7, 3.5, 7);
-    ctx.save(); ctx.translate(x + 1, y - 5); ctx.rotate(Math.atan2(p.fy, p.fx)); ctx.fillRect(0, -2, 12, 4); ctx.restore();
+    rr(x - 4, y - 7, 3.5, 7, 1.5);
+    ctx.save(); ctx.translate(x + 1, y - 5); ctx.rotate(Math.atan2(p.fy, p.fx)); rr(0, -2, 12, 4, 1.5); ctx.restore();
   } else {
-    ctx.fillRect(x - 5, y - 7 + sw * 0.4, 3.5, 7 - sw * 0.4);
-    ctx.fillRect(x + 1.5, y - 7 - sw * 0.4, 3.5, 7 + sw * 0.4);
+    rr(x - 5, y - 7 + sw * 0.4, 3.5, 7 - sw * 0.4, 1.5);
+    rr(x + 1.5, y - 7 - sw * 0.4, 3.5, 7 + sw * 0.4, 1.5);
   }
   ctx.fillStyle = p.team ? COLORS.ink : COLORS.chalk;
-  rr(x - 7, y - 11, 14, 5, 2);
+  rr(x - 7, y - 12, 14, 6, 3, true);
   ctx.fillStyle = col;
-  rr(x - 8, y - 21, 16, 11, 4);
+  rr(x - 8, y - 22, 16, 12, 5, true);
+  const numCol = p.team ? COLORS.paper : COLORS.chalk;
+  ctx.font = '7px Bungee, Impact, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 2; ctx.strokeStyle = COLORS.ink; ctx.lineJoin = 'round';
+  ctx.strokeText(SHIRT_NUM[p.role], x, y - 16);
+  ctx.fillStyle = numCol;
+  ctx.fillText(SHIRT_NUM[p.role], x, y - 16);
   if (p.role === 'gk') {
-    // Buzo de arquero: número 1 y guantes.
-    ctx.fillStyle = COLORS.ink;
-    ctx.font = '8px Bungee, Impact, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('1', x, y - 15);
+    // Guantes de arquero.
     ctx.fillStyle = COLORS.paper;
-    circle(x - 10, y - 14, 3.2);
-    circle(x + 10, y - 14, 3.2);
+    circle(x - 10, y - 14, 3.2, true);
+    circle(x + 10, y - 14, 3.2, true);
   } else if (p.team === 0) {
     ctx.fillStyle = COLORS.chalk;
-    ctx.fillRect(x - 3.5, y - 21, 2.5, 11);
-    ctx.fillRect(x + 1, y - 21, 2.5, 11);
+    rr(x - 3.5, y - 22, 2.5, 11, 1.2);
+    rr(x + 1, y - 22, 2.5, 11, 1.2);
   } else {
     ctx.fillStyle = COLORS.ink;
-    ctx.fillRect(x - 8, y - 16, 16, 2);
+    rr(x - 8, y - 17, 16, 2, 1);
   }
   if (p.punchT > 0) {
     ctx.fillStyle = p.skin;
-    circle(x + p.fx * (13 + 5 * h), y - 15 + p.fy * 5, 4.8);
-    ctx.strokeStyle = COLORS.ink; ctx.lineWidth = 1.2; ctx.stroke();
+    circle(x + p.fx * (13 + 5 * h), y - 15 + p.fy * 5, 4.8, true);
   }
-  const r = 11 * h, hx = x + p.fx * 1.5, hy = y - 20 - r + 3;
+  // Cabeza grande estilo "figurita": más chica que el cuerpo no, al revés.
+  const r = 13 * h, hx = x + p.fx * 1.5, hy = y - 21 - r + 3;
   ctx.fillStyle = p.skin;
-  circle(hx, hy, r);
-  ctx.strokeStyle = COLORS.ink; ctx.lineWidth = 1.5; ctx.stroke();
+  circle(hx, hy, r, true);
   if (p.fy < -0.7) {
     ctx.fillStyle = p.hair;
-    circle(hx, hy - 1, r * 0.85);
+    circle(hx, hy - 1, r * 0.85, true);
     return;
   }
   ctx.fillStyle = p.hair;
   ctx.beginPath();
   ctx.arc(hx, hy, r, Math.PI * 1.02, Math.PI * 1.98);
   ctx.quadraticCurveTo(hx - p.fx * r * 0.3, hy - r * 0.2, hx - r, hy - r * 0.05);
+  ctx.closePath();
   ctx.fill();
+  outline();
+  // Brillo plano en la frente: la "chispa" típica del arte figurita/sticker.
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.ellipse(hx + p.fx * r * 0.32, hy - r * 0.5, r * 0.26, r * 0.15, 0.4, 0, 7);
+  ctx.fill();
+  ctx.restore();
   const ex = hx + p.fx * r * 0.42, ey = hy + Math.max(-0.2, p.fy) * r * 0.3 + r * 0.12;
   const sp = r * 0.32 * (1 - Math.abs(p.fx) * 0.35);
   ctx.fillStyle = COLORS.ink;
@@ -258,10 +281,18 @@ function drawBall(b: Ball) {
   ctx.fillStyle = bomb ? '#2b1410' : '#fbf6ec';
   circle(b.x, y, 6.5);
   ctx.restore();
-  ctx.strokeStyle = COLORS.ink; ctx.lineWidth = 1.5;
+  ctx.strokeStyle = COLORS.ink; ctx.lineWidth = 2; ctx.lineJoin = 'round';
   ctx.beginPath(); ctx.arc(b.x, y, 6.5, 0, 7); ctx.stroke();
+  // Parche de pelota tipo figurita: un pentágono girando con el spin, en vez de un simple punto.
+  ctx.save();
+  ctx.translate(b.x, y);
+  ctx.rotate(b.spin);
   ctx.fillStyle = bomb ? COLORS.roj : COLORS.ink;
-  circle(b.x + Math.cos(b.spin) * 2.5, y + Math.sin(b.spin) * 1.5, 2.2);
+  ctx.beginPath();
+  ctx.moveTo(0, -3.2); ctx.lineTo(2.6, -0.6); ctx.lineTo(1.6, 2.8); ctx.lineTo(-1.6, 2.8); ctx.lineTo(-2.6, -0.6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
   if (bomb) {
     ctx.strokeStyle = '#d9c7a0'; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(b.x + 3, y - 5); ctx.quadraticCurveTo(b.x + 7, y - 11, b.x + 10, y - 10); ctx.stroke();
