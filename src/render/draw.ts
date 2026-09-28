@@ -2,7 +2,6 @@
 import { COLORS, CY, F, H, HAZARD, W } from '../config';
 import { G, headOf } from '../state';
 import { ghostY } from '../sim/ball';
-import { SUPERS } from '../sim/player';
 import type { Ball, Banana, Bus, Dog, Player, Team } from '../types';
 import { norm, R } from '../util';
 import { makeBackground } from './background';
@@ -193,10 +192,6 @@ function figure(p: Player, x: number, y: number, h: number, col: string) {
     ctx.fillStyle = COLORS.ink;
     rr(x - 8, y - 17, 16, 2, 1);
   }
-  if (p.punchT > 0) {
-    ctx.fillStyle = p.skin;
-    circle(x + p.fx * (13 + 5 * h), y - 15 + p.fy * 5, 4.8, true);
-  }
   // Cabeza grande estilo "figurita": más chica que el cuerpo no, al revés.
   const r = 13 * h, hx = x + p.fx * 1.5, hy = y - 21 - r + 3;
   ctx.fillStyle = p.skin;
@@ -239,13 +234,6 @@ function drawPlayer(p: Player) {
   const col = p.role === 'gk' ? (p.team ? '#b48cff' : '#7bd389') : p.team ? COLORS.roj : COLORS.cel;
   ctx.fillStyle = 'rgba(40,22,8,.35)';
   ctx.beginPath(); ctx.ellipse(p.x, p.y + 1, 11 + 2 * h, 4.5, 0, 0, 7); ctx.fill();
-  if (p.meter >= 100) {
-    ctx.save();
-    ctx.globalAlpha = 0.5 + 0.4 * Math.sin(G.tick * 0.25);
-    ctx.strokeStyle = COLORS.sol; ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.ellipse(p.x, p.y + 1, 17 + 3 * h, 7, 0, 0, 7); ctx.stroke();
-    ctx.restore();
-  }
   if (p.stun > 0) {
     ctx.save(); ctx.translate(p.x, p.y); ctx.rotate((p.vx >= 0 ? 1 : -1) * 1.45); figure(p, 0, 0, h, col); ctx.restore();
     ctx.fillStyle = COLORS.sol;
@@ -253,6 +241,9 @@ function drawPlayer(p: Player) {
       const a = G.tick * 0.15 + k * 2.1;
       star(p.x + Math.cos(a) * 15, p.y - 16 + Math.sin(a) * 5, 3.5);
     }
+  } else if (p.slideT > 0) {
+    // Barrida: se tira al piso en la dirección que mira.
+    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.atan2(p.fy, p.fx) * 0.5); figure(p, 0, 0, h, col); ctx.restore();
   } else figure(p, p.x, p.y, h, col);
   if (p.human) {
     const ty = p.stun ? p.y - 32 : p.y - 20 - 22 * h - 10;
@@ -270,17 +261,9 @@ function drawBallShadow(b: Ball) {
 
 function drawBall(b: Ball) {
   const y = b.y - b.z;
-  if (b.trail.length) {
-    const c = b.super ? SUPERS[b.super].color : '#fff';
-    b.trail.forEach(([tx, ty], i) => { ctx.globalAlpha = (i / b.trail.length) * 0.6; ctx.fillStyle = c; circle(tx, ty, 3 + i * 0.35); });
-    ctx.globalAlpha = 1;
-  }
   const bomb = G.mods.bomba;
-  ctx.save();
-  if (b.super) { ctx.shadowColor = SUPERS[b.super].color; ctx.shadowBlur = 18; }
   ctx.fillStyle = bomb ? '#2b1410' : '#fbf6ec';
   circle(b.x, y, 6.5);
-  ctx.restore();
   ctx.strokeStyle = COLORS.ink; ctx.lineWidth = 2; ctx.lineJoin = 'round';
   ctx.beginPath(); ctx.arc(b.x, y, 6.5, 0, 7); ctx.stroke();
   // Parche de pelota tipo figurita: un pentágono girando con el spin, en vez de un simple punto.

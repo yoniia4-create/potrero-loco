@@ -5,7 +5,7 @@ import type { Ball, Input, Player } from '../types';
 import { clamp, hyp, norm, pick, R } from '../util';
 import { doPass } from './player';
 
-const noInput = (): Input => ({ x: 0, y: 0, kick: false, punch: false, sup: false, aim: null });
+const noInput = (): Input => ({ x: 0, y: 0, kick: false, slide: false, sprint: false, aim: null });
 
 /** Arquero: se para entre la pelota y el arco, sale a buscar pelotas cercanas y la saca rápido. */
 function keeperInput(p: Player): Input {
@@ -30,7 +30,7 @@ function keeperInput(p: Player): Input {
   let b = G.balls[0];
   for (const q of G.balls) if (Math.abs(q.x - own) < Math.abs(b.x - own)) b = q;
   const distToGoal = hyp(b.x - own, b.y - CY);
-  const loose = !b.owner && !b.super && !b.dogged;
+  const loose = !b.owner && !b.dogged;
 
   if (loose && distToGoal < 150 && b.z < 30) {
     // Salir a buscarla.
@@ -80,20 +80,23 @@ export function aiInput(p: Player): Input {
     const dx = oppGoal - p.x, dy = gy - p.y, dG = hyp(dx, dy);
     const aim: [number, number] = [dx / dG, dy / dG];
     inp.x = aim[0]; inp.y = aim[1];
+    let closing = false;
     for (const o of opps) {
       if (o.stun) continue;
       const ox = o.x - p.x, oy = o.y - p.y;
-      if (hyp(ox, oy) < 75 && ox * dirX > 0) inp.y += (oy > 0 ? -1 : 1) * 0.9;
+      const d = hyp(ox, oy);
+      if (d < 75 && ox * dirX > 0) inp.y += (oy > 0 ? -1 : 1) * 0.9;
+      if (d < 90 && o.role !== 'gk') closing = true;
     }
-    if (p.meter >= 100 && dG < 440 && R() < 0.05) { inp.sup = true; inp.aim = aim; }
-    else if (dG < PLAY.aiSureShot || (dG < PLAY.aiShootRange && R() < PLAY.aiShootChance)) {
+    inp.sprint = closing;
+    if (dG < PLAY.aiSureShot || (dG < PLAY.aiShootRange && R() < PLAY.aiShootChance)) {
       // Apunta con algo de error: no todos los tiros van al ángulo.
       inp.kick = true;
       inp.aim = norm(aim[0], aim[1] + (R() - 0.5) * 0.25);
     }
     else if (mate.stun === 0) {
       const ahead = (mate.x - p.x) * dirX;
-      if ((mate.human && ahead > -30 && R() < 0.025) || (!mate.human && ahead > 60 && R() < 0.008)) inp.punch = true;
+      if ((mate.human && ahead > -30 && R() < 0.025) || (!mate.human && ahead > 60 && R() < 0.008)) inp.slide = true;
     }
     return inp;
   }
@@ -122,13 +125,17 @@ export function aiInput(p: Player): Input {
 
   if (b && chase) {
     go(b.x + b.vx * 8, b.y + b.vy * 8);
+    // Solo a fondo si la pelota está suelta (correr a buscarla). Si ya la tiene
+    // un rival, no perseguir a los pique: es justo lo que hacía sentir invadido
+    // al que ataca. La IA igual puede alcanzarlo caminando/trotando.
+    inp.sprint = !b.owner;
     const dog = G.dog;
-    if (b.dogged && dog && hyp(dog.x - p.x, dog.y - p.y) < 40 && p.punchCd === 0 && R() < 0.12) {
-      inp.punch = true; inp.aim = norm(dog.x - p.x, dog.y - p.y);
+    if (b.dogged && dog && hyp(dog.x - p.x, dog.y - p.y) < 40 && p.slideCd === 0 && R() < 0.12) {
+      inp.slide = true; inp.aim = norm(dog.x - p.x, dog.y - p.y);
     } else if (b.owner) {
       const o = b.owner, d = hyp(o.x - p.x, o.y - p.y);
-      if (d < 42 + 6 * headOf(p) && p.punchCd === 0 && o.shield === 0 && R() < PLAY.aiPunchChance) { inp.punch = true; inp.aim = norm(o.x - p.x, o.y - p.y); }
-    } else if (!b.super && bd < 30 && b.z > 4 && b.z < 32 && R() < 0.25) {
+      if (d < 42 + 6 * headOf(p) && p.slideCd === 0 && o.shield === 0 && R() < PLAY.aiSlideChance) { inp.slide = true; inp.aim = norm(o.x - p.x, o.y - p.y); }
+    } else if (bd < 30 && b.z > 4 && b.z < 32 && R() < 0.25) {
       inp.kick = true; inp.aim = norm(oppGoal - p.x, CY - p.y);
     }
   } else if (carrierBall) {

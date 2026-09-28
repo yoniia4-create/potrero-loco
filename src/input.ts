@@ -3,11 +3,13 @@ import { initAudio } from './audio';
 import type { Input } from './types';
 import { hyp } from './util';
 
-type Action = 'kick' | 'punch' | 'sup';
+type Action = 'kick' | 'slide';
 
 const keys = new Set<string>();
 const pressed = new Set<Action>();
 let touchVec = { x: 0, y: 0 };
+/** Correr es continuo mientras se mantiene apretado (no un pulso como patear/barrer). */
+let sprintHeld = false;
 
 export function humanInput(): Input {
   const k = (a: string, b: string) => (keys.has(a) || keys.has(b) ? 1 : 0);
@@ -15,8 +17,8 @@ export function humanInput(): Input {
     x: k('arrowright', 'd') - k('arrowleft', 'a') + touchVec.x,
     y: k('arrowdown', 's') - k('arrowup', 'w') + touchVec.y,
     kick: pressed.has('kick'),
-    punch: pressed.has('punch'),
-    sup: pressed.has('sup'),
+    slide: pressed.has('slide'),
+    sprint: keys.has('l') || sprintHeld,
     aim: null,
   };
 }
@@ -37,15 +39,14 @@ export function setupInput(h: Handlers) {
     keys.add(k);
     if (e.repeat) return;
     if (k === 'j' || k === ' ') pressed.add('kick');
-    if (k === 'k') pressed.add('punch');
-    if (k === 'l') pressed.add('sup');
+    if (k === 'k') pressed.add('slide');
     if (k === 'p' || k === 'escape') h.onPause();
     if (k === 'm') h.onMute();
     if (k === '1' || k === '2' || k === '3') h.onNumber(+k);
     if (k === 'enter') h.onEnter();
   });
   addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
-  addEventListener('blur', () => keys.clear());
+  addEventListener('blur', () => { keys.clear(); sprintHeld = false; });
 
   // Joystick virtual
   const joy = document.getElementById('joy')!;
@@ -75,13 +76,22 @@ export function setupInput(h: Handlers) {
   joy.addEventListener('pointerup', end);
   joy.addEventListener('pointercancel', end);
 
-  document.querySelectorAll<HTMLElement>('[data-act]').forEach((b) =>
-    b.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      initAudio();
-      pressed.add(b.dataset.act as Action);
-    }),
-  );
+  document.querySelectorAll<HTMLElement>('[data-act]').forEach((b) => {
+    const act = b.dataset.act;
+    if (act === 'sprint') {
+      // Botón de correr: se mantiene apretado, no es un pulso.
+      b.addEventListener('pointerdown', (e) => { e.preventDefault(); initAudio(); sprintHeld = true; });
+      b.addEventListener('pointerup', () => { sprintHeld = false; });
+      b.addEventListener('pointercancel', () => { sprintHeld = false; });
+      b.addEventListener('pointerleave', () => { sprintHeld = false; });
+    } else {
+      b.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        initAudio();
+        pressed.add(act as Action);
+      });
+    }
+  });
 
   if (matchMedia('(pointer: coarse)').matches) document.body.classList.add('is-touch');
   addEventListener('touchstart', () => document.body.classList.add('is-touch'), { once: true, passive: true });

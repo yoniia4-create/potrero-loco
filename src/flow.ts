@@ -13,7 +13,7 @@ import type { Input, Team } from './types';
 import { renderChips } from './ui/hud';
 import { hidePick, showEnd, showPause, showPick } from './ui/overlays';
 
-const NO_INPUT: Input = { x: 0, y: 0, kick: false, punch: false, sup: false, aim: null };
+const NO_INPUT: Input = { x: 0, y: 0, kick: false, slide: false, sprint: false, aim: null };
 
 /** Saque del medio. Si se indica un equipo, ese equipo arranca con la pelota. */
 export function kickoff(kickTeam: Team | null = null) {
@@ -28,7 +28,7 @@ export function kickoff(kickTeam: Team | null = null) {
   pos.push([F.l + 24, CY], [F.r - 24, CY]);
   G.players.forEach((p, i) => {
     Object.assign(p, {
-      x: pos[i][0], y: pos[i][1], vx: 0, vy: 0, stun: 0, punchT: 0,
+      x: pos[i][0], y: pos[i][1], vx: 0, vy: 0, stun: 0, slideT: 0,
       fx: p.team ? -1 : 1, fy: 0, noPick: 0, kickAnim: 0, shield: 0, holdT: 0,
     });
   });
@@ -119,7 +119,7 @@ export function newMatch() {
   G.bus = null;
   G.dog = null;
   G.paused = false;
-  G.players.forEach((p) => (p.meter = 0));
+  G.players.forEach((p) => { p.stamina = 100; p.staminaLocked = false; });
   recompute();
   renderChips();
   kickoff();

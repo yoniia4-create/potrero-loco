@@ -21,7 +21,7 @@ export const defaultMods = (): Mods => ({
 export const defaultTeamMods = (): TeamMods => ({
   speed: 1,
   head: 1,
-  meter: 1,
+  staminaRegen: 1,
   ghost: false,
   goalHalf: PHYS.goalHalf,
 });
@@ -30,8 +30,8 @@ function mkPlayer(team: Team, human: boolean, role: Player['role'], skin: string
   return {
     team, human, role, skin, hair,
     x: 0, y: 0, vx: 0, vy: 0, fx: team ? -1 : 1, fy: 0,
-    stun: 0, punchT: 0, punchCd: 0, kickCd: 0, kickAnim: 0, noPick: 0,
-    meter: 0, anim: 0, aimOff: 0, shield: 0, holdT: 0,
+    stun: 0, slideT: 0, slideCd: 0, kickCd: 0, kickAnim: 0, noPick: 0,
+    stamina: 100, staminaLocked: false, anim: 0, aimOff: 0, shield: 0, holdT: 0,
   };
 }
 

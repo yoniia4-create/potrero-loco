@@ -1,12 +1,11 @@
 export type Team = 0 | 1;
 export type Role = 'att' | 'def' | 'sup' | 'gk';
 export type Phase = 'title' | 'pick' | 'play' | 'goal' | 'end';
-export type SuperType = 'cannon' | 'zigzag' | 'meteor';
 export type Vec = [number, number];
 
 export type CardId =
   | 'hielo' | 'luna' | 'banana' | 'multi' | 'bomba' | 'pampero' | 'colectivo' | 'perro'
-  | 'cabezon' | 'arco' | 'turbo' | 'fantasma' | 'super';
+  | 'cabezon' | 'arco' | 'turbo' | 'fantasma' | 'aguante';
 
 export interface Player {
   team: Team;
@@ -18,10 +17,14 @@ export interface Player {
   /** Dirección a la que mira (vector unitario). */
   fx: number; fy: number;
   stun: number;
-  punchT: number; punchCd: number;
+  /** Barrida: frames activos y cooldown hasta la próxima. */
+  slideT: number; slideCd: number;
   kickCd: number; kickAnim: number;
   noPick: number;
-  meter: number;
+  /** Aguante para correr (0-100). */
+  stamina: number;
+  /** Se re-habilita correr recién cuando el aguante sube de PLAY.staminaRecoverThreshold. */
+  staminaLocked: boolean;
   anim: number;
   aimOff: number;
   /** Frames en que no le pueden sacar la pelota (recién la recibió). */
@@ -34,12 +37,8 @@ export interface Ball {
   x: number; y: number; z: number;
   vx: number; vy: number; vz: number;
   owner: Player | null;
-  super: SuperType | null;
-  superT: number;
-  dx: number; dy: number;
   last: Player | null;
   fuse: number;
-  trail: Vec[];
   spin: number;
   /** La lleva el perro en la boca. */
   dogged: boolean;
@@ -70,7 +69,7 @@ export interface Dog {
 
 export interface Particle { x: number; y: number; vx: number; vy: number; life: number; max: number; c: string; s: number }
 
-export interface Input { x: number; y: number; kick: boolean; punch: boolean; sup: boolean; aim: Vec | null }
+export interface Input { x: number; y: number; kick: boolean; slide: boolean; sprint: boolean; aim: Vec | null }
 
 export interface ActiveCard { id: CardId; team: Team; wind?: Vec }
 
@@ -89,7 +88,8 @@ export interface Mods {
 export interface TeamMods {
   speed: number;
   head: number;
-  meter: number;
+  /** Multiplicador de la velocidad a la que se recupera el aguante. */
+  staminaRegen: number;
   ghost: boolean;
   /** Mitad del ancho del arco que defiende este equipo. */
   goalHalf: number;

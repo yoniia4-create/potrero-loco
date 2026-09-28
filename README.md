@@ -14,8 +14,8 @@ Abrí la dirección que muestra la terminal.
 |---|---|---|
 | Mover | Flechas / WASD | Joystick |
 | Patear | J o Espacio | Patear |
-| Piña (o pase con pelota) | K | Piña / pase |
-| Súper tiro | L | Súper |
+| Barrida (o pase con pelota) | K | Barrida / pase |
+| Correr (mantener) | L | Correr |
 | Pausa | P o Esc | Botón Pausa |
 | Silenciar | M | Botón Sonido |
 

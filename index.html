@@ -14,7 +14,7 @@
       <div class="team cel"><span class="num" id="sA">0</span><span class="tname">Celeste · vos</span></div>
       <div class="mid">
         <div class="clock" id="clock">2:00</div>
-        <div class="meter" id="meter"><span id="meterLbl">Súper</span><div class="bar"><i id="meterFill"></i></div></div>
+        <div class="meter" id="meter"><span id="meterLbl">Aguante</span><div class="bar"><i id="meterFill"></i></div></div>
       </div>
       <div class="team roj"><span class="tname">Rojo</span><span class="num" id="sB">0</span></div>
     </header>
@@ -27,12 +27,12 @@
       </div>
     </div>
     <div class="stage" id="stage"><canvas id="game" aria-label="Cancha de Potrero Loco"></canvas></div>
-    <p class="hint">Mover <b>flechas / WASD</b> · Patear <b>J o Espacio</b> · Piña o pase <b>K</b> · Súper <b>L</b> · Pausa <b>P</b> · Sonido <b>M</b></p>
+    <p class="hint">Mover <b>flechas / WASD</b> · Patear <b>J o Espacio</b> · Barrida o pase <b>K</b> · Correr <b>L</b> (mantené) · Pausa <b>P</b> · Sonido <b>M</b></p>
     <div class="touch">
       <div class="joy" id="joy"><div class="knob" id="knob"></div></div>
       <div class="btns">
-        <button class="tbtn punch" data-act="punch">Piña<br>pase</button>
-        <button class="tbtn sup" data-act="sup">Súper</button>
+        <button class="tbtn slide" data-act="slide">Barrida<br>pase</button>
+        <button class="tbtn sprint" data-act="sprint">Correr</button>
         <button class="tbtn kick" data-act="kick">Patear</button>
       </div>
     </div>
@@ -46,11 +46,12 @@
       <ul class="rules">
         <li>Cada vez que te hacen un gol, elegís una carta de caos que cambia las reglas.</li>
         <li>Las cartas se acumulan: hasta 4 activas, y la más vieja se va.</li>
-        <li>El súper tiro sale al azar: cañonazo, serpiente o meteorito.</li>
+        <li>La barrida solo le saca la pelota al que la tiene. Si fallás, quedás un toque en el piso.</li>
+        <li>Correr gasta aguante. Se recupera solo cuando no corrés.</li>
       </ul>
-      <p class="keys"><kbd>WASD</kbd> mover · <kbd>J</kbd> patear · <kbd>K</kbd> piña o pase · <kbd>L</kbd> súper · <kbd>P</kbd> pausa</p>
+      <p class="keys"><kbd>WASD</kbd> mover · <kbd>J</kbd> patear · <kbd>K</kbd> barrida o pase · <kbd>L</kbd> correr · <kbd>P</kbd> pausa</p>
       <button class="btn" id="startBtn">Jugar</button>
-      <p class="version">v0.3.1 · Nuevo estilo de figuritas</p>
+      <p class="version">v0.3.2 · Barrida y correr</p>
     </div>
   </div>
 

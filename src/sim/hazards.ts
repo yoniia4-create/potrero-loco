@@ -85,7 +85,6 @@ function busCollisions(bus: Bus) {
     if (b.z > 40 || !inBus(bus, b.x, b.y, 4)) continue;
     releaseFromDog(b);
     b.owner = null;
-    b.super = null;
     const side = b.y >= bus.y ? 1 : -1;
     b.y = bus.y + side * (HAZARD.busHalfWidth + 6);
     b.vx = bus.dir * 9; b.vy = side * 6; b.vz = 5;
@@ -145,7 +144,7 @@ export function updateDog(d: Dog) {
       // Persigue la pelota libre más cercana (también se la roba a quien la tenga).
       let best = null, bd = 1e9;
       for (const b of G.balls) {
-        if (b.super || b.z > 20) continue;
+        if (b.z > 20) continue;
         const dd = hyp(b.x - d.x, b.y - d.y);
         if (dd < bd) { bd = dd; best = b; }
       }

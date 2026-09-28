@@ -1,26 +1,16 @@
-// Movimiento y acciones de los jugadores: patear, pasar, piña y súper tiro.
+// Movimiento y acciones de los jugadores: patear, pasar, barrida y correr.
 import { CY, F, PHYS, PLAY } from '../config';
 import { sfx } from '../audio';
-import { addShake, flashText, puff } from '../fx';
+import { addShake, puff } from '../fx';
 import { G, headOf, holding, mateOf } from '../state';
-import type { Input, Player, SuperType } from '../types';
-import { clamp, hyp, norm, pick, R } from '../util';
+import type { Input, Player } from '../types';
+import { clamp, hyp, norm, R } from '../util';
 import { dogHit } from './hazards';
-
-export const SUPERS: Record<SuperType, { name: string; color: string }> = {
-  cannon: { name: '¡CAÑONAZO!', color: '#ff8a3d' },
-  zigzag: { name: '¡TIRO SERPIENTE!', color: '#5ef2b0' },
-  meteor: { name: '¡METEORITO!', color: '#c77dff' },
-};
-
-const addMeter = (p: Player, n: number) => {
-  p.meter = Math.min(100, p.meter + n * G.teamM[p.team].meter);
-};
 
 /** Voltea a un jugador: lo empuja en (dx,dy) y le hace soltar la pelota. */
 export function hit(o: Player, dx: number, dy: number, frames: number) {
   o.stun = frames;
-  o.punchT = 0;
+  o.slideT = 0;
   o.vx = dx * PHYS.knockback;
   o.vy = dy * PHYS.knockback;
   const b = holding(o);
@@ -34,7 +24,7 @@ export function hit(o: Player, dx: number, dy: number, frames: number) {
 }
 
 function looseBallNear(p: Player, reach: number) {
-  return G.balls.find((q) => !q.owner && !q.super && !q.dogged && q.z < 34 && hyp(q.x - p.x, q.y - p.y) < reach);
+  return G.balls.find((q) => !q.owner && !q.dogged && q.z < 34 && hyp(q.x - p.x, q.y - p.y) < reach);
 }
 
 export function doKick(p: Player) {
@@ -50,15 +40,14 @@ export function doKick(p: Player) {
   b.last = p;
   b.rolled = false;
   p.noPick = 16;
-  addMeter(p, PHYS.meterKick);
   sfx('kick');
   puff(b.x, b.y, 'rgba(150,100,55,.6)', 5);
 }
 
-/** Pase a un compañero (por defecto, el compañero de campo). */
+/** Pase a un compañero (por defecto, el compañero de campo más cercano). */
 export function doPass(p: Player, target: Player = mateOf(p)) {
   const b = holding(p);
-  if (!b) return;
+  if (!b || !target) return;
   const m = target;
   const tx = m.x + m.vx * 12;
   const ty = m.y + m.vy * 12;
@@ -74,89 +63,72 @@ export function doPass(p: Player, target: Player = mateOf(p)) {
   sfx('kick');
 }
 
-export function doPunch(p: Player) {
-  if (p.punchCd > 0) return;
+/**
+ * Barrida: si tenés la pelota, en realidad es un pase (no te podés barrer a vos mismo).
+ * Si no la tenés, te tirás al piso buscando sacársela solo a quien la tiene. Si no conecta
+ * con nadie, quedás un toque tirado: no es gratis, así que no conviene spamearla.
+ */
+export function doSlide(p: Player) {
+  if (p.slideCd > 0) return;
   if (holding(p)) {
     doPass(p);
-    p.punchCd = 12;
+    p.slideCd = 12;
     return;
   }
-  p.punchT = 14;
-  p.punchCd = p.human ? 42 : PLAY.aiPunchCooldown;
-  p.vx = p.fx * 7;
-  p.vy = p.fy * 7;
+  p.slideT = PLAY.slideDuration;
+  p.slideCd = p.human ? PLAY.slideCooldownHuman : PLAY.aiSlideCooldown;
+  p.vx = p.fx * PLAY.slideLunge;
+  p.vy = p.fy * PLAY.slideLunge;
+  puff(p.x - p.fx * 8, p.y, 'rgba(180,140,90,.5)', 5);
   sfx('whoosh');
 }
 
-function checkPunch(p: Player) {
-  const reach = 24 + 12 * headOf(p);
+/** Devuelve true si la barrida conectó con algo (para no aplicar la penalidad por errar). */
+function checkSlide(p: Player): boolean {
+  const reach = PLAY.slideRange + 10 * headOf(p);
   const inFront = (x: number, y: number) => {
     const dx = x - p.x, dy = y - p.y;
     return hyp(dx, dy) < reach && dx * p.fx + dy * p.fy > 0;
   };
   for (const o of G.players) {
     if (o.team === p.team || o.stun > 0 || !inFront(o.x, o.y)) continue;
-    if (o.role === 'gk' && holding(o)) continue; // al arquero con la pelota en la mano no se le pega
+    // La barrida solo tiene sentido contra quien tiene la pelota (y no se puede barrer al arquero con ella).
+    if (!holding(o) || o.role === 'gk') continue;
     if (o.shield > 0) {
-      // Recién recibió: la piña no le saca la pelota, solo lo empuja un poco.
+      // Recién la recibió: la barrida no se la saca, solo lo empuja un poco.
       o.vx += p.fx * 2; o.vy += p.fy * 2;
-      p.punchT = 0;
       puff(o.x, o.y - 14, 'rgba(255,255,255,.6)', 3);
-      return;
+      return true;
     }
-    hit(o, p.fx, p.fy, PHYS.punchStun);
-    addMeter(p, PHYS.meterPunch);
-    p.punchT = 0;
+    hit(o, p.fx, p.fy, PHYS.slideStun);
     addShake(5);
     sfx('punch');
-    return;
+    return true;
   }
   const d = G.dog;
   if (d && d.yelp === 0 && inFront(d.x, d.y)) {
     dogHit(d, p.fx, p.fy);
-    addMeter(p, 8);
-    p.punchT = 0;
+    return true;
   }
-}
-
-export function doSuper(p: Player) {
-  if (p.meter < 100) return;
-  const b = holding(p) ?? looseBallNear(p, 30);
-  if (!b) return;
-  const t = pick(['cannon', 'zigzag', 'meteor'] as const);
-  p.meter = 0;
-  b.owner = null;
-  b.super = t;
-  b.last = p;
-  b.dx = p.fx; b.dy = p.fy;
-  b.rolled = false;
-  p.noPick = 25;
-  p.kickAnim = 12;
-  if (t === 'meteor') {
-    b.superT = 90;
-    b.vx = p.fx * 10; b.vy = p.fy * 10; b.vz = 10;
-  } else {
-    b.superT = t === 'cannon' ? 55 : 60;
-    b.z = 9;
-  }
-  flashText(SUPERS[t].name, SUPERS[t].color, 70);
-  addShake(8);
-  sfx('super');
+  return false;
 }
 
 export function updatePlayer(p: Player, inp: Input) {
   const tm = G.teamM[p.team];
+  const m = hyp(inp.x, inp.y);
   if (p.stun > 0) {
     if (--p.stun === 0) p.shield = Math.max(p.shield, PLAY.getUpShield);
     p.vx *= 0.9; p.vy *= 0.9;
-  } else if (p.punchT > 0) {
-    p.punchT--;
-    p.vx *= 0.9; p.vy *= 0.9;
-    checkPunch(p);
+  } else if (p.slideT > 0) {
+    p.slideT--;
+    p.vx *= 0.94; p.vy *= 0.94;
+    const connected = checkSlide(p);
+    if (connected) p.slideT = 0;
+    else if (p.slideT === 0) p.stun = PLAY.slideMissStun; // erró: queda un toque en el piso
   } else {
+    const sprinting = inp.sprint && !p.staminaLocked && p.stamina > 0;
     const base = p.role === 'gk' ? PLAY.gkSpeed : PHYS.playerSpeed * (p.human ? 1 : PHYS.aiSpeedFactor);
-    const sp = base * tm.speed * (holding(p) && !p.human ? PHYS.carrySpeedFactor : 1);
-    const m = hyp(inp.x, inp.y);
+    const sp = base * tm.speed * (holding(p) && !p.human ? PHYS.carrySpeedFactor : 1) * (sprinting ? PLAY.sprintMult : 1);
     let tx = 0, ty = 0;
     if (m > 0.15) {
       const k = Math.min(p.role === 'gk' ? 1.5 : 1, m) / m; // el arquero puede estirarse más rápido
@@ -166,9 +138,17 @@ export function updatePlayer(p: Player, inp: Input) {
     p.vx += (tx - p.vx) * 0.28;
     p.vy += (ty - p.vy) * 0.28;
     if (inp.aim) { p.fx = inp.aim[0]; p.fy = inp.aim[1]; }
-    if (inp.sup) doSuper(p);
     if (inp.kick) doKick(p);
-    if (inp.punch) doPunch(p);
+    if (inp.slide) doSlide(p);
+    if (G.phase === 'play') {
+      if (sprinting && m > 0.15) {
+        p.stamina = Math.max(0, p.stamina - PLAY.staminaDrain);
+        if (p.stamina <= 0) p.staminaLocked = true;
+      } else {
+        p.stamina = Math.min(100, p.stamina + PLAY.staminaRegen * tm.staminaRegen);
+        if (p.staminaLocked && p.stamina >= PLAY.staminaRecoverThreshold) p.staminaLocked = false;
+      }
+    }
   }
   p.x = clamp(p.x + p.vx, F.l + 10, F.r - 10);
   p.y = clamp(p.y + p.vy, F.t + 8, F.b - 6);
@@ -179,10 +159,9 @@ export function updatePlayer(p: Player, inp: Input) {
   }
   if (p.shield > 0) p.shield--;
   if (p.kickCd > 0) p.kickCd--;
-  if (p.punchCd > 0) p.punchCd--;
+  if (p.slideCd > 0) p.slideCd--;
   if (p.noPick > 0) p.noPick--;
   if (p.kickAnim > 0) p.kickAnim--;
-  if (G.phase === 'play') p.meter = Math.min(100, p.meter + PHYS.meterPassive * tm.meter);
   p.anim += hyp(p.vx, p.vy) * 0.35;
 }
 

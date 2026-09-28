@@ -35,10 +35,10 @@ export const CARDS: CardDef[] = [
     apply: (m, _o, _r, c) => { m.wind = c.wind ?? [0, 0]; } },
   { id: 'colectivo', name: 'Colectivo 60', sym: '▤', type: 'global', d: 'Cada tanto cruza un colectivo. Toca bocina antes. Atropella a cualquiera.',
     apply: (m) => { m.bus = true; } },
-  { id: 'perro', name: 'Perro Callejero', sym: '❧', type: 'global', d: 'Entra un perro que se roba la pelota. Con una piña la suelta.',
+  { id: 'perro', name: 'Perro Callejero', sym: '❧', type: 'global', d: 'Entra un perro que se roba la pelota. Con una barrida la suelta.',
     apply: (m) => { m.dog = true; } },
   { id: 'cabezon', name: 'Cabezón XL', sym: '●', type: 'team',
-    d: 'Tu equipo juega con cabezas dobles y piñas de más alcance.', dr: 'El rival juega con cabezas dobles y piñas de más alcance.',
+    d: 'Tu equipo juega con cabezas dobles y barridas de más alcance.', dr: 'El rival juega con cabezas dobles y barridas de más alcance.',
     apply: (_m, own) => { own.head = 1.8; } },
   { id: 'arco', name: 'Arco Gigante', sym: '▭', type: 'team', d: 'El arco rival se agranda.', dr: 'Tu arco se agranda.',
     apply: (_m, _own, rival) => { rival.goalHalf = PHYS.bigGoalHalf; } },
@@ -47,8 +47,8 @@ export const CARDS: CardDef[] = [
   { id: 'fantasma', name: 'Arquero Fantasma', sym: '♜', type: 'team',
     d: 'Un fantasma patrulla tu arco y rechaza tiros.', dr: 'Un fantasma patrulla el arco rival.',
     apply: (_m, own) => { own.ghost = true; } },
-  { id: 'super', name: 'Súper Barato', sym: '✦', type: 'team', d: 'Tu equipo carga el súper al doble.', dr: 'El rival carga el súper al doble.',
-    apply: (_m, own) => { own.meter = 2.2; } },
+  { id: 'aguante', name: 'Fondo Físico', sym: '✦', type: 'team', d: 'Tu equipo recupera el aguante para correr el doble de rápido.', dr: 'El rival recupera el aguante para correr el doble de rápido.',
+    apply: (_m, own) => { own.staminaRegen = 2.2; } },
 ];
 
 export const cardById = (id: CardId) => CARDS.find((c) => c.id === id)!;

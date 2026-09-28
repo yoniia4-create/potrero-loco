@@ -1,7 +1,7 @@
-// Física de la pelota, súper tiros, goles y posesión.
+// Física de la pelota, goles y posesión.
 import { CY, F, PHYS, PLAY } from '../config';
 import { sfx } from '../audio';
-import { addShake, burst, flashText, puff, ring } from '../fx';
+import { addShake, burst, flashText, puff } from '../fx';
 import { G, headOf, holding } from '../state';
 import type { Ball, Team } from '../types';
 import { clamp, hyp, norm, R } from '../util';
@@ -9,34 +9,12 @@ import { hit } from './player';
 
 export function newBall(x: number, y: number): Ball {
   return {
-    x, y, z: 0, vx: 0, vy: 0, vz: 0, owner: null, super: null, superT: 0,
-    dx: 1, dy: 0, last: null, fuse: PHYS.bombFuse, trail: [], spin: 0, dogged: false, rolled: false,
+    x, y, z: 0, vx: 0, vy: 0, vz: 0, owner: null,
+    last: null, fuse: PHYS.bombFuse, spin: 0, dogged: false, rolled: false,
   };
 }
 
 export const ghostY = (side: Team) => CY + Math.sin(G.tick * 0.035 + side * 2) * G.teamM[side].goalHalf * 0.75;
-
-function shock(b: Ball) {
-  // El arquero rival puede quedarse con el meteorito si cae cerca suyo.
-  const gk = G.players.find((o) => o.role === 'gk' && b.last && o.team !== b.last.team && o.stun === 0 && hyp(o.x - b.x, o.y - b.y) < 95);
-  if (gk && R() < PLAY.gkSuperCatch) {
-    b.owner = gk; b.vx = b.vy = b.vz = 0; gk.holdT = 0; gk.shield = PLAY.possessionShield;
-    ring(b.x, b.y, '#c77dff', 16);
-    flashText('¡QUÉ ATAJADA!', gk.team ? '#e8433f' : '#6ec6ff', 50);
-    addShake(6); sfx('punch');
-    return;
-  }
-  for (const o of G.players) {
-    if (b.last && o.team === b.last.team) continue;
-    if (hyp(o.x - b.x, o.y - b.y) < 95) {
-      const [nx, ny] = norm(o.x - b.x, o.y - b.y);
-      hit(o, nx, ny, 60);
-    }
-  }
-  ring(b.x, b.y, '#c77dff');
-  addShake(11);
-  sfx('boom');
-}
 
 function explode(b: Ball) {
   for (const o of G.players) {
@@ -47,7 +25,6 @@ function explode(b: Ball) {
   }
   releaseFromDog(b);
   b.owner = null;
-  b.super = null;
   b.vz = 8;
   const a = R() * Math.PI * 2;
   b.vx = Math.cos(a) * 5;
@@ -70,7 +47,7 @@ function goal(team: Team, b: Ball) {
   G.phase = 'goal';
   G.goalT = 110;
   releaseFromDog(b);
-  b.owner = null; b.super = null;
+  b.owner = null;
   b.vx = b.vy = b.vz = 0;
   flashText('¡GOL!', team ? '#e8433f' : '#6ec6ff', 110);
   addShake(10);
@@ -78,16 +55,9 @@ function goal(team: Team, b: Ball) {
   burst(b.x, b.y, ['#ffd23f', '#6ec6ff', '#e8433f', '#f3ebdd'], 50);
 }
 
-function endSuperOnWall(b: Ball) {
-  if (b.super === 'cannon' || b.super === 'zigzag') {
-    b.super = null;
-    b.vx *= 0.5; b.vy *= 0.5;
-  }
-}
-
 function walls(b: Ball) {
-  if (b.y < F.t + 4) { b.y = F.t + 4; b.vy = Math.abs(b.vy) * 0.75; endSuperOnWall(b); }
-  if (b.y > F.b - 2) { b.y = F.b - 2; b.vy = -Math.abs(b.vy) * 0.75; endSuperOnWall(b); }
+  if (b.y < F.t + 4) { b.y = F.t + 4; b.vy = Math.abs(b.vy) * 0.75; }
+  if (b.y > F.b - 2) { b.y = F.b - 2; b.vy = -Math.abs(b.vy) * 0.75; }
   for (const side of [0, 1] as const) {
     const tm = G.teamM[side];
     const gx = side === 0 ? F.l : F.r;
@@ -96,7 +66,6 @@ function walls(b: Ball) {
       if (Math.abs(b.x - gx) < 12 && Math.abs(b.y - ghostY(side)) < 26 && b.z < 50 && movingIn) {
         b.vx = -b.vx * 0.8;
         b.x = gx + (side === 0 ? 13 : -13);
-        b.super = null;
         puff(b.x, b.y, 'rgba(255,255,255,.7)', 8);
         sfx('ghost');
         continue;
@@ -110,41 +79,6 @@ function walls(b: Ball) {
     }
     b.x = gx;
     b.vx = -b.vx * 0.7;
-    endSuperOnWall(b);
-  }
-}
-
-function superFlight(b: Ball) {
-  b.superT--;
-  if (b.super === 'cannon') {
-    b.vx = b.dx * 16; b.vy = b.dy * 16;
-  } else {
-    const w = Math.cos(b.superT * 0.42) * 10;
-    b.vx = b.dx * 12 - b.dy * w;
-    b.vy = b.dy * 12 + b.dx * w;
-  }
-  b.z = 9; b.vz = 0;
-  b.x += b.vx; b.y += b.vy;
-  for (const o of G.players) {
-    if (o.team !== b.last!.team && o.stun === 0 && hyp(o.x - b.x, o.y - b.y) < 22 * headOf(o)) {
-      if (o.role === 'gk' && !b.rolled) {
-        b.rolled = true;
-        if (R() < PLAY.gkSuperCatch) {
-          b.super = null; b.owner = o; b.vx = b.vy = b.vz = 0; o.holdT = 0;
-          flashText('¡QUÉ ATAJADA!', o.team ? '#e8433f' : '#6ec6ff', 50);
-          addShake(6); sfx('punch');
-          return;
-        }
-      }
-      hit(o, b.dx, b.dy, 70);
-      b.superT -= 10;
-      addShake(5);
-      sfx('punch');
-    }
-  }
-  if (b.superT <= 0) {
-    b.super = null;
-    b.vx *= 0.6; b.vy *= 0.6;
   }
 }
 
@@ -197,30 +131,18 @@ export function updateBall(b: Ball) {
     }
   }
   if (!b.owner && !b.dogged) {
-    if (b.super === 'cannon' || b.super === 'zigzag') superFlight(b);
-    else {
-      const g = b.super === 'meteor' ? 0.32 : G.mods.grav;
-      if (!b.super) { b.vx += G.mods.wind[0]; b.vy += G.mods.wind[1]; }
-      b.x += b.vx; b.y += b.vy; b.z += b.vz; b.vz -= g;
-      if (b.z <= 0) {
-        b.z = 0;
-        if (b.super === 'meteor') {
-          b.super = null;
-          shock(b);
-          b.vz = 4; b.vx *= 0.5; b.vy *= 0.5;
-        } else if (b.vz < -1.4) b.vz = -b.vz * 0.55;
-        else b.vz = 0;
-      }
-      const fr = b.z > 0 ? PHYS.airFriction : G.mods.fric;
-      b.vx *= fr; b.vy *= fr;
-      if (!b.super) keeperSave(b);
+    b.vx += G.mods.wind[0]; b.vy += G.mods.wind[1];
+    b.x += b.vx; b.y += b.vy; b.z += b.vz; b.vz -= G.mods.grav;
+    if (b.z <= 0) {
+      b.z = 0;
+      if (b.vz < -1.4) b.vz = -b.vz * 0.55;
+      else b.vz = 0;
     }
+    const fr = b.z > 0 ? PHYS.airFriction : G.mods.fric;
+    b.vx *= fr; b.vy *= fr;
+    keeperSave(b);
   }
   b.spin += hyp(b.vx, b.vy) * 0.08;
-  if (b.super) {
-    b.trail.push([b.x, b.y - b.z]);
-    if (b.trail.length > 14) b.trail.shift();
-  } else if (b.trail.length) b.trail.shift();
   if (G.mods.bomba && G.phase === 'play' && --b.fuse <= 0) {
     explode(b);
     b.fuse = PHYS.bombFuse;
@@ -231,10 +153,10 @@ export function updateBall(b: Ball) {
 /** Asigna pelotas sueltas al jugador más cercano que pueda agarrarlas. */
 export function pickups() {
   for (const b of G.balls) {
-    if (b.owner || b.super || b.dogged || b.z > 14) continue;
+    if (b.owner || b.dogged || b.z > 14) continue;
     let best = null, bd = 1e9;
     for (const p of G.players) {
-      if (p.stun || p.noPick || p.punchT || holding(p)) continue;
+      if (p.stun || p.noPick || p.slideT || holding(p)) continue;
       const d = hyp(b.x - p.x, b.y - p.y);
       if (d < 12 + 8 * headOf(p) && d < bd) { bd = d; best = p; }
     }

@@ -33,32 +33,39 @@ export const PHYS = {
   goalHalf: 72,
   bigGoalHalf: 124,
   bombFuse: 480, // frames (8 s)
-  meterPassive: 0.012, // el súper se gana jugando: patear y pegar cargan más que esperar
-  meterKick: 4,
-  meterPunch: 10,
-  punchStun: 30, // jugadores más "robustos": menos tiempo en el piso por piña
-  knockback: 4.5, // impulso al ser volteado (antes 6: salían disparados demasiado lejos)
+  slideStun: 30, // cuadros en el piso al ser barrido con éxito
+  knockback: 4.5, // impulso al ser volteado
 } as const;
 
 /** Ajustes de ritmo de juego y de la IA. */
 export const PLAY = {
-  possessionShield: 24, // frames protegido al recibir la pelota
+  possessionShield: 30, // frames protegido al recibir la pelota
   kickoffShield: 45,
   getUpShield: 40, // frames protegido al levantarse, para que no lo vuelvan a voltear enseguida
-  aiPunchChance: 0.012, // por frame, cuando está a tiro del que lleva la pelota
-  aiPunchCooldown: 90, // frames entre piñas de la IA (el humano: 42)
+  // Barrida: solo funciona contra quien tiene la pelota. Si erra, el que la tira queda un toque en el piso.
+  slideRange: 30, // alcance de la barrida (además de 10*headOf)
+  slideDuration: 14, // cuadros que dura el intento (activo mientras busca conectar)
+  slideLunge: 5.5, // impulso hacia adelante al tirarse
+  slideCooldownHuman: 34,
+  slideMissStun: 16, // cuadros en el piso si la barrida no conecta con nadie
+  aiSlideChance: 0.006, // por frame, cuando está cerca del que lleva la pelota (baja = más aire para el que ataca)
+  aiSlideCooldown: 130, // frames entre barridas de la IA
   aiShootRange: 270,
   aiShootChance: 0.05, // por frame dentro del rango
   aiSureShot: 170, // a esta distancia patea siempre
   gkSpeed: 2.3,
   gkDiveSpeed: 3.4, // cuando viene un tiro
   gkReach: 24,
-  gkSuperCatch: 0.45, // chance de agarrar un súper tiro en vez de ser arrastrado
   gkHoldFrames: 45,
   gkSaveBase: 1.0, // chance de atajar un tiro lento
   gkSavePerSpeed: 0.04, // cuánto baja por cada unidad de velocidad del tiro
   gkSaveMin: 0.4,
   gkSaveMax: 0.9,
+  // Correr: gasta aguante mientras se mantiene apretado, se recupera solo al soltar.
+  sprintMult: 1.4, // multiplicador de velocidad corriendo
+  staminaDrain: 0.9, // por frame corriendo
+  staminaRegen: 0.4, // por frame sin correr
+  staminaRecoverThreshold: 35, // hay que llegar acá para poder volver a correr tras quedarse sin aguante
 } as const;
 
 export const HAZARD = {

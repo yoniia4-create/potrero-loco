@@ -1,4 +1,4 @@
-// Marcador, reloj, barra de súper y chips de cartas activas.
+// Marcador, reloj, barra de aguante y chips de cartas activas.
 import { cardById } from '../cards';
 import { G, human } from '../state';
 
@@ -9,13 +9,13 @@ export function updateHud() {
   $('sB').textContent = String(G.score[1]);
   const s = Math.ceil(G.timeLeft);
   $('clock').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-  const m = human().meter;
-  $('meterFill').style.width = `${m}%`;
+  const h = human();
+  $('meterFill').style.width = `${h.stamina}%`;
   const meter = $('meter');
-  const full = m >= 100;
-  if (meter.classList.contains('full') !== full) {
-    meter.classList.toggle('full', full);
-    $('meterLbl').textContent = full ? '¡Súper listo!' : 'Súper';
+  const low = h.staminaLocked || h.stamina < 20;
+  if (meter.classList.contains('low') !== low) {
+    meter.classList.toggle('low', low);
+    $('meterLbl').textContent = low ? '¡Sin aguante!' : 'Aguante';
   }
 }
 
